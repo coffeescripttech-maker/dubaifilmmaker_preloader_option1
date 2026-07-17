@@ -181,11 +181,15 @@
     <script src="assets/js/app-init.js"></script>
     <script src="assets/js/site-config.js"></script>
 
-    <!-- Cloudflare Web Analytics -->
-    <script
-      defer
-      src="https://static.cloudflareinsights.com/beacon.min.js"
-      data-cf-beacon='{"token": "624e41bf9bf046a88fa109aebee0d778"}'
-    ></script>
+    <!-- Cloudflare Web Analytics (production only) -->
+    <script>
+      if (location.hostname === 'dubaifilmmaker-preloader-option1.vercel.app' || location.hostname === 'posterco.tv') {
+        var s = document.createElement('script');
+        s.defer = true;
+        s.src = 'https://static.cloudflareinsights.com/beacon.min.js';
+        s.setAttribute('data-cf-beacon', '{"token": "624e41bf9bf046a88fa109aebee0d778"}');
+        document.body.appendChild(s);
+      }
+    </script>
   </body>
 </html>

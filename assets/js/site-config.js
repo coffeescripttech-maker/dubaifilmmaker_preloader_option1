@@ -130,7 +130,7 @@
   // Load configuration
   async function loadConfig() {
     try {
-      const response = await fetch('/config.json');
+      const response = await fetch('/config.json', { cache: 'no-cache' });
       if (!response.ok) {
         throw new Error('Config file not found');
       }
@@ -726,12 +726,14 @@
       const link = document.querySelector(settings.selector);
       if (link) {
         if (!settings.enabled) {
-          // Hide the entire list item from navigation bar
+          // Remove the entire list item from navigation bar
           var li = link.closest('li');
-          if (li) li.style.display = 'none';
-          console.log(`✓ ${page} link hidden from navigation`);
+          if (li && li.parentNode) {
+            li.parentNode.removeChild(li);
+            console.log(`✓ ${page} link REMOVED from navigation`);
+          }
         } else {
-          // Show the list item if it was hidden
+          // Ensure the link is enabled
           var li2 = link.closest('li');
           if (li2) li2.style.display = '';
           enableLink(link);
@@ -1179,7 +1181,18 @@
         const slug = link.getAttribute('data-slug');
         const href = link.getAttribute('href');
         console.log('🎯 Navigation link found - slug:', slug, 'href:', href);
-        
+
+        // Re-apply navigation link visibility BEFORE navigation
+        if (config && config.features && config.features.navigation) {
+          console.log('⚙️ Nav config for about:', config.features.navigation.aboutPage.enabled);
+          handleNavigationLinks(config.features.navigation);
+        }
+
+        // Re-apply button style before navigation
+        if (config && config.styling) {
+          handleButtonStyle(config.styling);
+        }
+
         if (slug) {
           // Add navigation start banner
           console.log('');
@@ -1248,9 +1261,11 @@
           contentLoaded = staffList || addressBox || document.body.textContent.includes('Loading staff');
           if (DEBUG_LOGS) console.log('Contact elements found:', { staffList: !!staffList, addressBox: !!addressBox });
         } else if (targetSlug === 'about') {
-          const aboutBox = document.querySelector('.about-content, .about-inner-wrapper');
-          contentLoaded = aboutBox || document.body.textContent.includes('Loading about');
-          if (DEBUG_LOGS) console.log('About elements found:', { aboutBox: !!aboutBox });
+          // About content: check for rendered elements OR if page-inner-content was replaced
+          const aboutBox = document.querySelector('.about-content, .about-inner-wrapper, .btn-reel');
+          const pageInner = document.querySelector('.page-inner-content');
+          contentLoaded = aboutBox || (pageInner && pageInner.children.length > 0);
+          if (DEBUG_LOGS) console.log('About elements found:', { aboutBox: !!aboutBox, hasChildren: pageInner ? pageInner.children.length > 0 : false });
         } else if (targetSlug === 'works') {
           const listWorks = document.querySelector('.list--works');
           const worksListing = document.querySelector('.bloc-projects-listing');
@@ -1264,25 +1279,37 @@
           if (DEBUG_LOGS) console.log('Homepage elements found:', { slider: !!homepageSlider, works: !!worksContainer });
         }
         
-        if (contentLoaded) {
-          console.log('✓ Content loaded for:', targetSlug);
-          console.log('🔄 Updating body class and header styles...');
-          
+        // Always re-apply config features regardless of content detection
+        // This ensures button style, nav links, etc. are set before content renders
+        if (targetSlug !== 'homepage') {
+          // Only re-apply body-level classes for non-homepage navigation
           updateBodyClass(targetSlug);
+
+          if (config && config.features && config.features.navigation) {
+            handleNavigationLinks(config.features.navigation);
+          }
+          if (config && config.styling) {
+            handleButtonStyle(config.styling);
+          }
+          if (config && config.features && config.features.projectsNav) {
+            handleProjectsNav(config.features.projectsNav.enabled);
+          }
           if (headerConfig) {
             applyHeaderStyles();
           }
-          
-          // Trigger text logo replacement if needed (for SPA navigation)
-          if (typeof window.replaceLogoWithText === 'function') {
-            setTimeout(() => {
-              window.replaceLogoWithText();
-            }, 100);
-          }
-          
-          // Trigger page-specific content loading
+        }
+
+        // Trigger text logo replacement if needed (for SPA navigation)
+        if (typeof window.replaceLogoWithText === 'function') {
+          setTimeout(() => {
+            window.replaceLogoWithText();
+          }, 100);
+        }
+
+        if (contentLoaded) {
+          console.log('✓ Content loaded for:', targetSlug);
           console.log('📦 Triggering content loader for:', targetSlug);
-          
+
           if (targetSlug === 'contact') {
             console.log('✅ Calling loadContactContent()');
             window.loadContactContent();
@@ -1297,7 +1324,7 @@
             if (typeof window.loadProjects === 'function') {
               console.log('✅ Calling loadProjects()');
               window.loadProjects();
-              
+
               // Add retry mechanism to ensure projects load
               setTimeout(() => {
                 const worksContainer = document.getElementById('works-list-project');
@@ -1314,7 +1341,7 @@
               console.log('✅ Calling loadIndexProjects() with navigation flag');
               const navStartTime = performance.now();
               window.loadIndexProjects(true); // Pass true to indicate navigation
-              
+
               // Add completion summary after a short delay
               setTimeout(() => {
                 const navDuration = ((performance.now() - navStartTime) / 1000).toFixed(2);
@@ -1334,9 +1361,9 @@
               console.warn('⚠ loadIndexProjects not defined yet');
             }
           }
-          
+
           contentChangeDetected = true;
-          
+
           // Reset after a delay to allow for next navigation
           setTimeout(() => {
             targetSlug = null;
