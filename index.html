@@ -537,8 +537,14 @@
         animation-delay: 20ms !important;
       }
 
-      /* ── SHOW SUBNAV INSTANTLY ON DESKTOP (no fade/delay) ── */
-      .template-homepage .header__subnav {
+      /* ── SHOW SUBNAV INSTANTLY AFTER INTRO (no fade/delay) ──
+         But hide initially to prevent FOUC/glitch before preloader. */
+      .template-homepage .header__navigations-wrapper {
+        opacity: 0 !important;
+        pointer-events: none !important;
+      }
+      .template-homepage.intro-ended .header__navigations-wrapper,
+      body.header--open .header__navigations-wrapper {
         opacity: 1 !important;
         pointer-events: auto !important;
         transition: none !important;
