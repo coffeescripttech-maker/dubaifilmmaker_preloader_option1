@@ -345,7 +345,7 @@
                 const vid = e.target;
                 vid.currentTime = 0;
                 vid.parentElement.classList.add('show-video');
-                vid.play();
+                vid.play().catch(() => {});
                 console.log('✓ Video playing on hover');
               });
 

@@ -7,7 +7,6 @@
   'use strict';
 
   let config = null;
-  let projectsData = null;
   let headerConfig = null;
   
   // Global flag to track if intro animation has completed
@@ -128,20 +127,6 @@
     }
   }
 
-  // Load projects data
-  async function loadProjectsData() {
-    try {
-      const response = await fetch('/projects-data.json');
-      if (!response.ok) {
-        throw new Error('Projects data file not found');
-      }
-      projectsData = await response.json();
-      console.log('✓ Projects data loaded');
-    } catch (error) {
-      console.warn('⚠ Could not load projects-data.json:', error);
-    }
-  }
-
   // Load configuration
   async function loadConfig() {
     try {
@@ -152,7 +137,6 @@
       config = await response.json();
       console.log('✓ Site config loaded:', config);
       await loadHeaderConfig();
-      await loadProjectsData();
       applyConfig();
     } catch (error) {
       console.warn('⚠ Could not load config.json, using defaults:', error);
@@ -180,177 +164,9 @@
     }
   }
 
-  // Update existing project item - preserves event handlers
-  function updateProjectItem(listItem, project) {
-    // Update data-cat attribute
-    listItem.setAttribute('data-cat', project.classification);
-
-    const link = listItem.querySelector('a.box--work__link');
-    if (link) {
-      // Update href
-      link.setAttribute('href', `works/${project.slug}`);
-
-      // Update text content
-      const infoH2 = link.querySelector('.box--work__info h2');
-      const infoPs = link.querySelectorAll('.box--work__info p');
-      if (infoH2) infoH2.textContent = project.title;
-      if (infoPs[0]) infoPs[0].textContent = project.director;
-      if (infoPs[1]) infoPs[1].textContent = project.category;
-
-      // Update image
-      const img = link.querySelector('img.video-img-poster');
-      if (img) {
-        img.setAttribute('data-src', project.posterImage);
-        img.setAttribute('data-srcset', project.posterImageSrcset);
-        // Trigger lazy load update
-        img.removeAttribute('src');
-        img.removeAttribute('srcset');
-      }
-
-      // Update video
-      const video = link.querySelector('video.js-video');
-      if (video) {
-        video.setAttribute('data-src', project.videoUrl);
-        // Reset video
-        video.removeAttribute('src');
-        video.load();
-      }
-
-      // Update cursor text
-      const cursorH2 = link.querySelector('.cursor-main-text h2');
-      const cursorPs = link.querySelectorAll('.cursor-main-text p');
-      if (cursorH2) cursorH2.textContent = project.title;
-      if (cursorPs[0]) cursorPs[0].textContent = project.director;
-      if (cursorPs[1]) cursorPs[1].textContent = project.category;
-    }
-  }
-
-  // Create new project item
-  function createProjectItem(project) {
-    const li = document.createElement('li');
-    li.className = 'box box--work';
-    li.setAttribute('data-cat', project.classification);
-
-    li.innerHTML = `
-                    <a
-                      href="works/${project.slug}"
-                      data-navigo
-                      class="box--work__link js-has-cursor-text"
-                    >
-                      <div class="box--work__info">
-                        <h2>${project.title}</h2>
-                        <p>${project.director}</p>
-                        <p>${project.category}</p>
-                      </div>
-
-                      <div class="box--work__video video-wrapper has-poster">
-                        <img
-                          class="video-img-poster lazy-media"
-                          data-src="${project.posterImage}"
-                          data-srcset="${project.posterImageSrcset}"
-                          alt=""
-                        />
-                        <video
-                          class="js-video lazy-media"
-                          data-src="${project.videoUrl}"
-                          playsinline
-                          loop
-                          muted
-                        ></video>
-                      </div>
-                      <div class="cursor-text-animated js-cursor-text-animated">
-                        <div
-                          class="mooving-elements is-arrow"
-                          data-friction="1"
-                        >
-                          <svg
-                            width="11"
-                            height="10"
-                            viewBox="0 0 11 10"
-                            fill="none"
-                            xmlns="http://www.w3.org/2000/svg"
-                          >
-                            <path
-                              d="M8.72366 3.91174H7.0685L5.14349 3.8482L6.53777 4.99985L8.40882 6.65189L7.19444 7.72412L5.3234 6.07209L4.01007 4.83306L4.07303 6.50892L4.06404 8.02593L2.3819 6.54069L2.39989 2.42649L7.04152 2.42649L8.72366 3.91174Z"
-                              fill="white"
-                            />
-                          </svg>
-                        </div>
-                        <div
-                          class="mooving-elements shift cursor-main-text"
-                          data-friction="5"
-                        >
-                          <h2>${project.title}</h2>
-                          <p>${project.director}</p>
-                          <p>${project.category}</p>
-                        </div>
-                      </div>
-                    </a>
-`;
-    return li;
-  }
-
-  // Load site content based on mode (dubaifilmmaker or posterco)
-  function loadSiteContent(siteMode) {
-    if (!projectsData || !projectsData[siteMode]) {
-      console.warn(`⚠ No data found for site mode: ${siteMode}`);
-      return;
-    }
-
-    const projects = projectsData[siteMode].projects;
-    const projectsList = document.querySelector(
-      '.bloc-projects-listing .list--works'
-    );
-
-    if (!projectsList) {
-      console.warn('⚠ Projects list container not found');
-      console.log('Available elements:', {
-        blocProjectsListing: document.querySelector('.bloc-projects-listing'),
-        listWorks: document.querySelector('.list--works'),
-        worksId: document.querySelector('#works')
-      });
-      return;
-    }
-
-    console.log(
-      `🔄 Updating projects with ${siteMode} content...`,
-      projectsList
-    );
-
-    // Get existing <li> elements
-    const existingItems = Array.from(
-      projectsList.querySelectorAll('li.box--work')
-    );
-
-    // Update existing items and add new ones if needed
-    // projects.forEach((project, index) => {
-    //   if (existingItems[index]) {
-    //     // Update existing item - preserves event handlers
-    //     updateProjectItem(existingItems[index], project);
-    //   } else {
-    //     // Add new item if we have more projects than existing items
-    //     const newItem = createProjectItem(project);
-    //     projectsList.appendChild(newItem);
-    //   }
-    // });
-
-    // // Remove extra items if we have fewer projects
-    // if (existingItems.length > projects.length) {
-    //   for (let i = projects.length; i < existingItems.length; i++) {
-    //     existingItems[i].remove();
-    //   }
-    // }
-
-    // console.log(`✓ Updated ${projects.length} projects for site: ${siteMode}`);
-
-    // // Trigger lazy loading update for updated images
-    // setTimeout(() => {
-    //   if (typeof LazyLoad !== 'undefined' && window.lazyLoadInstance) {
-    //     window.lazyLoadInstance.update();
-    //     console.log('✓ Lazy loading updated for content changes');
-    //   }
-    // }, 100);
-  }
+  // (Removed: updateProjectItem, createProjectItem, loadSiteContent — all were dead code
+  //  referencing the removed projectsData variable. Data loading is handled by
+  //  data-loader.js and the inline scripts in index.html.)
 
   // Apply header styles from data/header.json
   function applyHeaderStyles() {
@@ -864,22 +680,8 @@
     // 5. BUTTON STYLE (View other films CTA, Reel button, etc.)
     handleButtonStyle(config.styling);
 
-    // 0. LOAD SITE CONTENT (if projects data is available)
-    // Do this before disabling links so new content is loaded first
-    if (config.site && projectsData) {
-      // Small delay to ensure DOM is fully ready
-      setTimeout(() => {
-        loadSiteContent(config.site.mode);
-
-        // Apply link disabling AFTER content is loaded
-        setTimeout(() => {
-          handleProjectsListing(features.projectsListing.clickable);
-        }, 50);
-      }, 100);
-    } else {
-      // If no content to load, just disable existing links
-      handleProjectsListing(features.projectsListing.clickable);
-    }
+    // 0. PROJECTS LISTING CLICK HANDLING
+    handleProjectsListing(features.projectsListing.clickable);
 
     // Log current mode
     if (config.demo.mode) {

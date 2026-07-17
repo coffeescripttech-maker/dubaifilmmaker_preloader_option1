@@ -494,6 +494,47 @@
       .bloc-intro.lottie-ended {
         background: transparent !important;
       }
+
+      /* ── FASTER MENU ANIMATION ──
+         Override build.min.css 0.4s animation with a snappier 0.15s */
+      .header--open .header__subnav li a,
+      .header--closing .header__subnav li a {
+        animation-duration: 0.15s !important;
+      }
+      /* Reduce stagger delays between items (open) */
+      .header--open .header__subnav li:nth-child(2) a {
+        animation-delay: 20ms !important;
+      }
+      .header--open .header__subnav li:nth-child(3) a {
+        animation-delay: 40ms !important;
+      }
+      .header--open .header__subnav li:nth-child(4) a {
+        animation-delay: 60ms !important;
+      }
+      /* Reduce stagger delays (close — reversed) */
+      .header--closing .header__subnav li:first-child a {
+        animation-delay: 60ms !important;
+      }
+      .header--closing .header__subnav li:nth-child(2) a {
+        animation-delay: 40ms !important;
+      }
+      .header--closing .header__subnav li:nth-child(3) a {
+        animation-delay: 20ms !important;
+      }
+
+      /* ── SHOW SUBNAV INSTANTLY ON DESKTOP (no fade/delay) ── */
+      .template-homepage .header__subnav {
+        opacity: 1 !important;
+        pointer-events: auto !important;
+        transition: none !important;
+      }
+
+      /* ── SHOW MENU BUTTON INSTANTLY (no 0.6s fade, no waiting for intro-ended) ── */
+      .template-homepage.lottie-started .btn--menu {
+        opacity: 1 !important;
+        pointer-events: auto !important;
+        transition: none !important;
+      }
     </style>
   </head>
 
@@ -1222,7 +1263,7 @@
                 const vid = e.target;
                 vid.currentTime = 0;
                 vid.parentElement.classList.add('show-video');
-                vid.play();
+                vid.play().catch(() => {});
               });
 
               newVideo.addEventListener('mouseleave', function (e) {

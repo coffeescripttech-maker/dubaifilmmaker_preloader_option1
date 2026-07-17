@@ -82,11 +82,16 @@ console.log('🎬 VIDEO-PRELOADER.JS: Script loaded and executing');
     // CRITICAL: Multi-layer pause protection
     // Layer 1: Override the pause() method
     const originalPause = preloadVideo.pause.bind(preloadVideo);
-    preloadVideo.pause = function() {
+    preloadVideo.pause = function () {
       if (!document.body.classList.contains('intro-ended')) {
-        console.log('🚫 PRELOAD VIDEO: Blocked pause() call during intro - ignoring');
-        // Don't pause during intro - just return without doing anything
-        return Promise.resolve();
+        console.log('🚫 PRELOAD VIDEO: Blocked pause() call during intro - pausing native but will resume');
+        // Allow native pause for Chrome's power-saver but immediately schedule resume
+        setTimeout(() => {
+          if (!document.body.classList.contains('intro-ended') && preloadVideo.readyState >= 3) {
+            preloadVideo.play().catch(() => {});
+          }
+        }, 10);
+        return originalPause();
       } else {
         console.log('✅ PRELOAD VIDEO: Pause allowed (intro ended)');
         return originalPause();
@@ -151,7 +156,10 @@ console.log('🎬 VIDEO-PRELOADER.JS: Script loaded and executing');
         console.log('🚀 EARLY PRELOAD: Attempting to start playback at canplay');
         video.play()
           .then(() => console.log('✅ EARLY PRELOAD: Video playing from canplay event'))
-          .catch(err => console.log('⚠️ EARLY PRELOAD: Play prevented at canplay:', err.message));
+          .catch(err => {
+            // Log but don't throw — Chrome may block autoplay for non-visible media
+            console.log('⚠️ EARLY PRELOAD: Play prevented at canplay:', err.message, '(will retry via pause monitor)');
+          });
       }
     });
 
@@ -162,7 +170,10 @@ console.log('🎬 VIDEO-PRELOADER.JS: Script loaded and executing');
         console.log('🚀 EARLY PRELOAD: Attempting to start playback at canplaythrough');
         video.play()
           .then(() => console.log('✅ EARLY PRELOAD: Video playing from canplaythrough event'))
-          .catch(err => console.log('⚠️ EARLY PRELOAD: Play prevented at canplaythrough:', err.message));
+          .catch(err => {
+            // Log but don't throw — Chrome may block autoplay for non-visible media
+            console.log('⚠️ EARLY PRELOAD: Play prevented at canplaythrough:', err.message, '(will retry via pause monitor)');
+          });
       }
     });
 
